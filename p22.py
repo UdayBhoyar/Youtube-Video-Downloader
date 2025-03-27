@@ -65,7 +65,7 @@ tk.Button(root, text="Paste from Clipboard", command=paste_from_clipboard).pack(
 # Quality Selection
 tk.Label(root, text="Select Quality:").pack(pady=5)
 quality_var = tk.StringVar(value="Best Video")
-quality_menu = ttk.Combobox(root, textvariable=quality_var, values=["Best Video", "Worst Video", "Best Audio"])
+quality_menu = ttk.Combobox(root, textvariable=quality_var, values=["Best Video", "Average Video", ])
 quality_menu.pack(pady=5)
 
 # Format Selection
