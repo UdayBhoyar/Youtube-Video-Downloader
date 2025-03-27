@@ -1,55 +1,80 @@
 import yt_dlp
 import os
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
+import pyperclip
 
+# Set the download folder
+DOWNLOAD_FOLDER = r'C:\Users\Asus\OneDrive\Desktop\Code\CapStone\prac3\youtube_downloads'
+if not os.path.exists(DOWNLOAD_FOLDER):
+    os.makedirs(DOWNLOAD_FOLDER)
+
+# Function to download video/audio
 def download_video():
-    url = url_entry.get()  # Get URL from the entry widget
-
+    url = url_entry.get().strip()
     if not url:
         messagebox.showerror("Input Error", "Please enter a valid YouTube URL.")
         return
-
-    # Set the path to save videos in C:/Users/Student
-    download_folder = r'C:\Users\Asus\OneDrive\Desktop\Code\CapStone\prac3\youtube_downloads'  # Make sure this folder exists
-    if not os.path.exists(download_folder):
-        os.makedirs(download_folder)  # Create the folder if it doesn't exist
+    
+    quality = quality_var.get()
+    file_format = format_var.get()
 
     ydl_opts = {
-        'format': 'best',  # Choose the best available format
-        'outtmpl': os.path.join(download_folder, '%(title)s.%(ext)s'),  # Save in the 'Student' folder with the title as filename
-        'progress_hooks': [on_progress]  # Function to handle progress updates
+        'outtmpl': os.path.join(DOWNLOAD_FOLDER, '%(title)s.%(ext)s'),
+        'writethumbnail': True,  # Preserve thumbnail
+        'writeinfojson': True,  # Preserve metadata
+        'quiet': True,  # Suppress console output
     }
-
+    
+    # Automatically select best available format
+    if quality == "Best Video":
+        ydl_opts['format'] = f"bv*+ba/b"  # Best video + best audio, fallback to best single format
+    elif quality == "Worst Video":
+        ydl_opts['format'] = f"wv*+ba/w"  # Worst video + best audio, fallback to worst single format
+    elif quality == "Best Audio":
+        ydl_opts['format'] = 'bestaudio'
+        ydl_opts['postprocessors'] = [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': file_format,
+            'preferredquality': '192'
+        }]
+    
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
-            messagebox.showinfo("Success", f"Download completed successfully!\nFile downloaded to: {os.path.abspath(download_folder)}")
+        messagebox.showinfo("Success", f"Download completed!\nCheck: {os.path.abspath(DOWNLOAD_FOLDER)}")
     except Exception as e:
         messagebox.showerror("Download Error", f"An error occurred: {str(e)}")
 
-def on_progress(d):
-    if d['status'] == 'downloading':
-        progress_label.config(text=f"Downloading: {d['filename']} - {d['_percent_str']}")
+# Function to paste clipboard content
+def paste_from_clipboard():
+    url_entry.delete(0, tk.END)
+    url_entry.insert(0, pyperclip.paste())
 
-# Set up the Tkinter window
+# Tkinter UI Setup
 root = tk.Tk()
-root.title("YouTube Video Downloader")
+root.title("YouTube Downloader")
+root.geometry("400x350")
 
-# URL Entry
-url_label = tk.Label(root, text="Enter YouTube Video URL:")
-url_label.pack(pady=10)
-
-url_entry = tk.Entry(root, width=40)
+tk.Label(root, text="Enter YouTube URL:").pack(pady=5)
+url_entry = tk.Entry(root, width=50)
 url_entry.pack(pady=5)
 
-# Download Button
-download_button = tk.Button(root, text="Download Video", command=download_video)
-download_button.pack(pady=20)
+tk.Button(root, text="Paste from Clipboard", command=paste_from_clipboard).pack(pady=5)
 
-# Progress Label
-progress_label = tk.Label(root, text="Progress: None", font=("Arial", 12))
-progress_label.pack(pady=10)
+# Quality Selection
+tk.Label(root, text="Select Quality:").pack(pady=5)
+quality_var = tk.StringVar(value="Best Video")
+quality_menu = ttk.Combobox(root, textvariable=quality_var, values=["Best Video", "Worst Video", "Best Audio"])
+quality_menu.pack(pady=5)
 
-# Run the Tkinter event loop
+# Format Selection
+tk.Label(root, text="Select Format:").pack(pady=5)
+format_var = tk.StringVar(value="mp4")
+format_menu = ttk.Combobox(root, textvariable=format_var, values=["mp4", "mp3"])  # Removed "webm"
+format_menu.pack(pady=5)
+
+# Buttons
+tk.Button(root, text="Download", command=download_video).pack(pady=10)
+
 root.mainloop()
